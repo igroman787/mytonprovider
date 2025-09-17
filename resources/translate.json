@@ -179,6 +179,21 @@
 		"en": "Set settings by name",
 		"zh_TW": "按名稱設定"
 	},
+	"network_status_cmd": {
+		"ru": "Отобразить статус использования сети",
+		"en": "Display network usage status",
+		"zh_TW": "顯示網路使用狀態"
+	},
+	"telemetry_pass_cmd": {
+		"ru": "Установить пароль для телеметрии",
+		"en": "Set password for telemetry",
+		"zh_TW": "設定遙測密碼"
+	},
+	"modules_list_cmd": {
+		"ru": "Отобразить статус модулей",
+		"en": "Display module status",
+		"zh_TW": "顯示模組狀態"
+	},
 	"123": {
 		"ru": "aaa",
 		"en": "bbb",

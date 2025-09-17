@@ -49,13 +49,19 @@ class Module():
 		self.local = local
 		self.mandatory = True
 		self.local.add_log(f"{self.name} module init done", "debug")
+
+		self.global_config_name = "global.config.json"
+		self.global_config_dir = "/var/ton"
+		self.global_config_path = f"{self.global_config_dir}/{self.global_config_name}"
+		self.global_config_url = f"https://igroman787.github.io/{self.global_config_name}"
 	#end define
 
 	@publick
-	def check(self):
+	def pre_up(self):
 		self.local.start_thread(self.check_update)
 	#end define
 
+	@publick
 	def check_update(self):
 		git_path = self.get_my_git_path()
 		is_update_available = check_git_update(git_path)
@@ -169,27 +175,26 @@ class Module():
 	#end define
 
 	@publick
-	def get_update_args(self, src_path):
+	def get_update_args(self, user, **kwargs):
 		script_path = f"{self.local.buffer.my_dir}/scripts/update.sh"
 		update_args = [
-			"bash", script_path, "-d", self.local.buffer.venvs_dir,
-			"&&", "systemctl", "restart", self.service_name
+			"bash", script_path, "-u", user, "-d", self.local.buffer.venvs_dir
 		]
 		return update_args
 	#end define
 
-	def install(
-			self, 
-			install_args: Dict, 
-			**kwargs
-		):
+	def install(self, install_args, install_answers):
 		# install_args: user, src_dir, bin_dir, venvs_dir, venv_path, src_path
 		# Проверить конфигурацию
 		mconfig_dir = f"/home/{install_args.user}/.local/share/mytonprovider"
 		mconfig_path = f"{mconfig_dir}/mytonprovider.db"
 
-		# Подготовить папку
+		# Подготовить папки
 		os.makedirs(mconfig_dir, exist_ok=True)
+		os.makedirs(self.global_config_dir, exist_ok=True)
+
+		# Скачать глобал конфиг
+		subprocess.run(["wget", self.global_config_url, "-O", self.global_config_path])
 
 		# Создать конфиг
 		mconfig = Dict()
@@ -197,6 +202,8 @@ class Module():
 		mconfig.config.logLevel = "debug"
 		mconfig.config.isLocaldbSaving = True
 		mconfig.config.isStartOnlyOneProcess = False
+		mconfig.install_args = install_args
+		mconfig.install_answers = install_answers
 
 		# Записать конфиг
 		write_config_to_file(config_path=mconfig_path, data=mconfig)
@@ -206,7 +213,8 @@ class Module():
 			"chown", "-R",
 			install_args.user + ':' + install_args.user,
 			install_args.venv_path,
-			mconfig_dir
+			mconfig_dir,
+			self.global_config_dir
 		])
 
 		# Создать службу

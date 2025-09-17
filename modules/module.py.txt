@@ -1,0 +1,53 @@
+
+class Module():
+	def __init__(self, local):
+		self.name = "Название модуля"
+		self.service_name = self.name
+		self.local = local
+		self.mandatory = True | False # Обязательный или нет
+		self.daemon_interval = 60
+	#end define
+
+	@publick
+	def daemon(self):
+		""" Запускается в цикле в режиме демона """
+		pass
+	#end define
+
+	@publick
+	def is_enabled(self):
+		""" Возвращает включен ли модуль """
+		pass
+	#end define
+
+	@publick
+	def get_console_commands(self):
+		""" Возвращает доступные команды для консоли """
+		pass
+	#end define
+
+	@publick
+	def pre_up(self):
+		""" Запускается при запуске консоли """
+		pass
+	#end define
+
+	@publick
+	def status(self, args):
+		""" Отображает блок статуса в консоли """
+		pass
+	#end define
+
+	@publick
+	def get_update_args(self, restart_service=False):
+		""" Возвращает аргументы запуска для обновления  """
+		pass
+	#end define
+
+	@publick
+	def install(self, install_args, install_answers):
+		# install_args: user, src_dir, bin_dir, venvs_dir, venv_path, src_path
+		""" Устанавливает модуль при выборе """
+		pass
+	#end define
+#end class

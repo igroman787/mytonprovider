@@ -45,7 +45,7 @@ class Module():
 
 	@publick
 	def run_benchmark(self, args):
-		if self.is_benchmark_done():
+		if self.is_benchmark_done() and "--force" not in args:
 			benchmark = self.local.db.benchmark
 			print("last benchmark time:", timeago(benchmark.timestamp))
 			print()
@@ -66,6 +66,7 @@ class Module():
 	#end define
 
 	def do_benchmark(self):
+		self.local.add_log(f"Benchmark is running, it may take about two minutes")
 		disk = self.disk_benchmark()
 		network = self.network_benchmark()
 		self.save_benchmark(disk, network)
@@ -129,16 +130,16 @@ class Module():
 		result.qd1.name = "RND-4K-QD1"
 
 		self.local.add_log("start RND-4K-QD64 read test", "debug")
-		qd64_read_result = run_subprocess(qd64_read_args, timeout=20)
+		qd64_read_result = run_subprocess(qd64_read_args, timeout=30)
 
 		self.local.add_log("start RND-4K-QD64 write test", "debug")
-		qd64_write_result = run_subprocess(qd64_write_args, timeout=20)
+		qd64_write_result = run_subprocess(qd64_write_args, timeout=30)
 
 		self.local.add_log("start RND-4K-QD1 read test", "debug")
-		qd1_read_result = run_subprocess(qd1_read_args, timeout=20)
+		qd1_read_result = run_subprocess(qd1_read_args, timeout=30)
 
 		self.local.add_log("start RND-4K-QD1 write test", "debug")
-		qd1_write_result = run_subprocess(qd1_write_args, timeout=20)
+		qd1_write_result = run_subprocess(qd1_write_args, timeout=30)
 
 		result.qd64.read, result.qd64.read_iops = self.parse_fio_result(qd64_read_result, mode="read")
 		result.qd64.write, result.qd64.write_iops = self.parse_fio_result(qd64_write_result, mode="write")

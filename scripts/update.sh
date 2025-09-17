@@ -8,8 +8,9 @@ if [ "$(id -u)" != "0" ]; then
 fi
 
 # Input args
-while getopts "d:" flag; do
+while getopts "u:d:" flag; do
 	case "${flag}" in
+		u) user=${OPTARG};;
 		d) venvs_dir=${OPTARG};;
 	esac
 done
@@ -31,8 +32,10 @@ src_path="${src_dir}/${repo}"
 
 clone_repository() {
 	echo "https://github.com/${author}/${repo}.git -> ${branch}"
+	rm -rf ${src_path}_tmp
+	git clone --branch ${branch} --recursive https://github.com/${author}/${repo}.git ${src_path}_tmp
 	rm -rf ${src_path}
-	git clone --branch ${branch} --recursive https://github.com/${author}/${repo}.git ${src_path}
+	mv ${src_path}_tmp ${src_path}
 }
 
 install_apt_dependencies() {
@@ -50,9 +53,22 @@ install_pip_dependencies() {
 	pip3 install -r ${src_path}/mypylib/requirements.txt
 }
 
+download_global_config() {
+	mkdir -p /var/ton
+	wget https://igroman787.github.io/global.config.json -O /var/ton/global.config.json
+	chown ${user}:${user} /var/ton/global.config.json
+}
+
+service_restart() {
+	systemctl restart mytonproviderd
+}
+
+
 # Start update
 clone_repository
 install_apt_dependencies
 activate_venv
 install_pip_dependencies
+download_global_config
+service_restart
 exit 0

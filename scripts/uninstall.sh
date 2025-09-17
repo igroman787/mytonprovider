@@ -17,6 +17,8 @@ rm -rf /usr/bin/tonutils-storage
 rm -rf /usr/bin/tonutils-storage-provider
 rm -rf /usr/bin/adnl-tunnel
 
+rm -rf /etc/systemd/system/mytonproviderd.service
+rm -rf /etc/systemd/system/mytonprovider-updater.service
 rm -rf /etc/systemd/system/ton-storage.service
 rm -rf /etc/systemd/system/ton-storage-provider.service
 rm -rf /etc/systemd/system/ton-tunnel-provider.service

@@ -8,7 +8,7 @@ from functools import lru_cache
 from pathlib import Path
 import importlib
 from os import listdir
-from os.path import normpath
+from os.path import normpath, isdir
 import sys
 from mypylib import (
 	Dict,
@@ -40,6 +40,9 @@ def convert_to_required_decimal(input_int, decimal_size, round_size):
 
 def fix_git_config(git_path):
 	git_path = normpath(git_path)
+	if not isdir(git_path):
+		#print(f"fix_git_config warning: dir not found: {git_path}")
+		return
 	args = ["git", "status"]
 	try:
 		process = subprocess.run(args, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=git_path, timeout=3)
@@ -162,10 +165,10 @@ def get_check_update_status(module):
 	return status
 #end define
 
-def run_subprocess(*args, timeout):
-	is_shell = len(args) == 1
+def run_subprocess(args, timeout):
+	is_shell = type(args) == str
 	process = subprocess.run(
-		*args, 
+		args, 
 		stdin=subprocess.PIPE, 
 		stdout=subprocess.PIPE, 
 		stderr=subprocess.PIPE, 
@@ -179,11 +182,31 @@ def run_subprocess(*args, timeout):
 	return stdout
 #end define
 
+def get_module_type(module):
+	module_type_list = list()
+	if None != getattr(module, "service_name", None):
+		module_type_list.append("service")
+	if None != getattr(module, "daemon", None):
+		module_type_list.append("daemon")
+	if None != getattr(module, "get_my_git_path", None):
+		module_type_list.append("git")
+	if None != getattr(module, "pre_up", None):
+		module_type_list.append("checkable")
+	if None != getattr(module, "status", None):
+		module_type_list.append("statusable")
+	if None != getattr(module, "get_update_args", None):
+		module_type_list.append("updatable")
+	if None != getattr(module, "install", None):
+		module_type_list.append("installable")
+	module_type = ", ".join(module_type_list)
+	return module_type
+#end define
 
 
 ###
 ### Для работы с модулями
 ###
+
 def import_commands(local, console):
 	for module in local.buffer.modules:
 		method = getattr(module, "get_console_commands", None)
@@ -198,7 +221,7 @@ def do_import_commands(console, commands):
 		console.AddItem(command.cmd, command.func, command.desc)
 #end define
 
-def import_modules(local, check_is_enabled=False):
+def import_modules(local):
 	local.buffer.modules = list()
 	modules_dir = f"{local.buffer.my_dir}/modules"
 	sys.path.append(modules_dir)
@@ -209,11 +232,18 @@ def import_modules(local, check_is_enabled=False):
 			#print(module_name, "not_module")
 			continue
 		module = file_module.Module(local)
+		local.buffer.modules.append(module)
+#end define
+
+def get_modules(local, check_is_enabled=True):
+	result = list()
+	for module in local.buffer.modules:
 		is_enabled = is_module_enabled(module)
 		if check_is_enabled and is_enabled == False:
 			#print(module_name, "not_enabled")
 			continue
-		local.buffer.modules.append(module)
+		result.append(module)
+	return result
 #end define
 
 def is_module_enabled(module, default=True):

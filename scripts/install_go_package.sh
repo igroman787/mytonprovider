@@ -18,6 +18,7 @@ show_help_and_exit() {
 	echo ' -r               Set git repo'
 	echo ' -b               Set git branch'
 	echo ' -e               Set entry point for compilation'
+	echo ' -s               Service name for restart'
 	echo ' -h               Show this help'
 	exit
 }
@@ -28,12 +29,13 @@ if [[ "${1-}" =~ ^-*h(elp)?$ ]]; then
 fi
 
 # Input args
-while getopts "a:r:b:e:h" flag; do
+while getopts "a:r:b:e:s:h" flag; do
 	case "${flag}" in
 		a) author=${OPTARG};;
 		r) repo=${OPTARG};;
 		b) branch=${OPTARG};;
 		e) entry_point=${OPTARG};;
+		s) service_name=${OPTARG};;
 		h) show_help_and_exit;;
 		*)
 			echo "Flag -${flag} is not recognized. Aborting"
@@ -52,6 +54,11 @@ go_path="/usr/local/go/bin/go"
 check_go_version() {
 	go_mod_path=${1}
 	go_path=${2}
+	if [ ! -f ${go_path} ]; then
+		install_go
+		return
+	fi
+
 	go_mod_text=$(cat ${go_mod_path}) || exit 1
 	need_version_text=$(echo "${go_mod_text}" | grep "go " | head -n 1 | awk '{print $2}')
 	current_version_text=$(${go_path} version | awk '{print $3}' | sed 's\go\\g')
@@ -86,9 +93,10 @@ install_go() {
 
 clone_repository() {
 	echo "https://github.com/${author}/${repo}.git -> ${branch}"
+	rm -rf ${src_path}_tmp
+	git clone --branch ${branch} --recursive https://github.com/${author}/${repo}.git ${src_path}_tmp
 	rm -rf ${src_path}
-	git clone --branch ${branch} --recursive https://github.com/${author}/${repo}.git ${src_path}
-	git config --global --add safe.directory ${src_path}
+	mv ${src_path}_tmp ${src_path}
 }
 
 install_required() {
@@ -102,6 +110,12 @@ compilation() {
 	CGO_ENABLED=1 ${go_path} build -o ${bin_path} ${src_path}/${entry_point}
 }
 
+service_restart() {
+	if [ -n "${service_name}" ]; then
+		systemctl restart ${service_name}
+	fi
+}
+
 setup_go_package(){
 	echo -e "${COLOR}[1/4]${ENDC} Cloning ${repo} repository"
 	clone_repository
@@ -111,6 +125,7 @@ setup_go_package(){
 
 	echo -e "${COLOR}[3/4]${ENDC} Source compilation"
 	compilation
+	service_restart
 
 	echo -e "${COLOR}[4/4]${ENDC} ${repo} installation complete"
 }

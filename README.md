@@ -1,72 +1,73 @@
 # What is MyTonProvider?
-MyTonProvider is a console application that serves as a convenient wrapper for `ton_storage`, `ton_storage_provider` and `ton_tunnel_provider`. It has specially developed for provider management tasks in the Linux operating system.
+
+MyTonProvider is a console application that serves as a convenient wrapper around `ton_storage`, `ton_storage_provider`, and `ton_tunnel_provider`. It’s designed specifically for managing provider tasks on Linux.
 
 ![MyTonProvider Status](resources/screen.png)
 
-# Description of modules
+# Module Overview
+
 ```bash
-telemetry - Sends telemetry to the server. Allows you to move up in the list of providers.
-ton_storage - Downloads, stores and distributes files via ADNL protocol. Requires ton_storage_provider to work. 
-ton_storage_provider - Concludes storage contracts, sends confirmations and receives payment. Allows you to earn income for storing other people's files.
-ton_tunnel_provider - Concludes contracts for traffic routing. Allows you to earn income for proxying someone else's traffic through your IP address.
+telemetry            - Sends telemetry to the server. Helps you rank higher in the providers list.
+ton_storage          - Downloads, stores, and serves files over the ADNL protocol. Required by ton_storage_provider.
+ton_storage_provider - Signs storage contracts, submits confirmations, and receives payments. Lets you earn by storing others’ files.
+ton_tunnel_provider  - Signs traffic-routing contracts. Lets you earn by proxying others’ traffic through your IP address.
 ```
 
-# How to install:
-1. Download the installer and run it:
-```bash
-wget https://raw.githubusercontent.com/igroman787/mytonprovider/master/scripts/install.sh
-bash install.sh
-```
+# Provider Installation (Docker)
 
-2. During the installation process, select all available modules (selection is done by pressing space):
-```bash
-[?] Select modules: 
-   [X] telemetry
-   [X] ton-storage
-   [X] ton-storage-provider
-```
+1. **Clone the repository and enter the directory:**
 
-3. Specify the path for the provider files, the price for storage and what size to allocate to the provider:
-```bash
-[?] Storage location: /var/storage
-[?] Storage price per 200gb per month: 10
-[?] Storage maximum allocated size (disk space: 1755.99, free 1747.64): 1700
-```
+   ```bash
+   git clone -b docker --single-branch https://github.com/igroman787/mytonprovider.git
+   cd mytonprovider
+   ```
 
-4. After installation is complete, run mytonprovider:
-```bash
-> mytonprovider
-```
+2. **Fill out `.env`:**
 
-5. Take the wallet address from the mytonprovider status and top it up with one coin:
-```bash
-MyTonProvider> status
-```
+   | Variable                         | Description                                                               | Example value                                             |
+   | -------------------------------- | ------------------------------------------------------------------------- | --------------------------------------------------------- |
+   | `MYTONPROVIDER_MODULES`          | Modules to install inside the container (comma-separated, **no spaces**). | `ton-storage,ton-storage-provider,auto-updater,telemetry` |
+   | `MYTONPROVIDER_STORAGE_PATH`     | **Host** path for provider data (mounted into the container).             | `/var/storage`                                            |
+   | `MYTONPROVIDER_STORAGE_COST`     | Your storage price (in TON).                                              | `10`                                                      |
+   | `MYTONPROVIDER_SPACE_TO_PROVIDE` | Amount of space you allocate for storage (in GB).                         | `10`                                                      |
 
-6. Register in the list of providers. This action will send a transaction to a common address on the blockchain and allow users to find you to enter into a file storage agreement:
-```bash
-MyTonProvider> register
-```
+3. **Grant permissions on `${MYTONPROVIDER_STORAGE_PATH}` on the host**
 
-7. Done. After a while, your provider will appear in the list of providers on the site https://mytonprovider.org
+   ```bash
+   sudo mkdir -p /var/storage
+   sudo chown -R 1000:1000 /var/storage
+   ```
 
-8. It is advisable, but not necessary - to make a backup of your private key in a safe place:
-```bash
-MyTonProvider> export_wallet
-```
+4. **Build the image:**
 
+   ```bash
+   docker-compose build
+   ```
+
+5. **Start the service:**
+
+   ```bash
+   docker-compose up -d
+   ```
+
+6. **Open the provider console:**
+
+   ```bash
+   docker exec -it mytonprovider console
+   ```
 
 # Telemetry
-We recommend enabling telemetry to improve your ranking in the list of providers. However, you can disable telemetry if you wish.
-To disable telemetry during installation, disable the telemetry module:
-```bash
-[?] Select modules: 
-   [ ] telemetry
-   [X] ton-storage
-   [X] ton-storage-provider
+
+We recommend enabling telemetry to improve your ranking in the providers list. You can disable it if you prefer.
+
+**Before installation (in `.env`):** remove `telemetry` from `MYTONPROVIDER_MODULES`.
+
+```env
+MYTONPROVIDER_MODULES=ton-storage,ton-storage-provider,auto-updater
 ```
 
-To disable telemetry after installation, follow these steps::
+**After installation (in the console):**
+
 ```bash
 MyTonProvider> set send_telemetry false
 ```

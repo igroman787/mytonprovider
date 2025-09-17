@@ -5,7 +5,11 @@ from typing import Any
 import inquirer
 import sys
 import os
-from mypylib import Dict, MyPyClass
+from mypylib import (
+	Dict,
+	MyPyClass,
+	read_config_from_file
+)
 from utils import (
 	import_modules,
 	get_modules_names,
@@ -73,6 +77,9 @@ def ignore_tunnel(answers):
 #end define
 
 def calculate_space_to_provide(answers):
+	save_answers = get_save_answers()
+	if save_answers.space_to_provide_gigabytes != None:
+		return save_answers.space_to_provide_gigabytes
 	storage_path = answers.get("storage_path")
 	os.makedirs(storage_path, exist_ok=True)
 	total_space, used_space, free_space = get_disk_space(storage_path, decimal_size=3, round_size=0)
@@ -87,25 +94,60 @@ def question_space_to_provide(answers):
 	return text
 #end define
 
+def calculate_utils(answers):
+	save_answers = get_save_answers()
+	result = save_answers.utils or list()
+	return result
+#end define
+
+def calculate_storage_path(answers):
+	save_answers = get_save_answers()
+	result = save_answers.storage_path or default_storage_path
+	return result
+#end define
+
+def calculate_storage_cost(answers):
+	save_answers = get_save_answers()
+	result = save_answers.storage_cost or default_storage_cost
+	return str(result)
+#end define
+
+def calculate_traffic_cost(answers):
+	save_answers = get_save_answers()
+	result = save_answers.traffic_cost or default_traffic_cost
+	return str(result)
+#end define
+
+def get_save_answers():
+	save_answers = Dict()
+	install_args = parse_input_args()
+	file_path = f"/home/{install_args.user}/.local/share/mytonprovider/mytonprovider.db"
+	if os.path.isfile(file_path) == False:
+		return save_answers
+	data = read_config_from_file(file_path)
+	save_answers = data.install_answers or Dict()
+	return save_answers
+#end define
 
 def create_questions():
 	questions = [
 		inquirer.Checkbox(
 			name="utils",
 			message=local.translate("question_utils"),
-			choices=get_modules_names(local)
+			choices=get_modules_names(local),
+			default=calculate_utils
 		),
-		inquirer.Path(
+		inquirer.Text(
 			name="storage_path",
 			message=local.translate("question_storage_path"),
-			default=default_storage_path,
+			default=calculate_storage_path,
 			ignore=ignore_storage,
 			validate=validate_storage
 		),
 		inquirer.Text(
 			name="storage_cost",
 			message=local.translate("question_storage_cost"),
-			default=default_storage_cost,
+			default=calculate_storage_cost,
 			ignore=ignore_provider,
 			validate=validate_cost
 		),
@@ -118,7 +160,7 @@ def create_questions():
 		inquirer.Text(
 			name="traffic_cost",
 			message=local.translate("question_traffic_cost"),
-			default=default_traffic_cost,
+			default=calculate_traffic_cost,
 			ignore=ignore_tunnel
 		)
 	]
@@ -128,9 +170,23 @@ def create_questions():
 def main():
 	# install_args: user, src_dir, bin_dir, venvs_dir, venv_path, src_path
 	install_args = parse_input_args()
-	questions = create_questions()
-	answers = inquirer.prompt(questions)
-	need_modules_names = answers.pop("utils")
+	noninteractive_args = ("utils", "storage_path", "storage_cost", "space_to_provide_gigabytes")
+
+	if all(k in install_args for k in noninteractive_args):
+		install_answers = Dict({
+			"utils": install_args.utils.split(","),
+			"storage_path": install_args.storage_path,
+			"storage_cost": str(install_args.storage_cost),
+			"space_to_provide_gigabytes": str(install_args.space_to_provide_gigabytes),
+			"traffic_cost": str(default_traffic_cost),
+		})
+		for k in noninteractive_args:
+			install_args.pop(k, None)
+	else:
+		questions = create_questions()
+		install_answers = Dict(inquirer.prompt(questions))
+
+	need_modules_names = install_answers.get("utils")
 	need_modules_names += get_modules_names(local, mandatory=True)
 	need_modules_names.sort()
 	#print("need_modules_names:", need_modules_names)
@@ -140,11 +196,15 @@ def main():
 		method = getattr(need_module, "install", None)
 		if method == None:
 			continue
-		need_module.install(install_args, **answers)
+		need_module.install(install_args, install_answers)
 #end define
 
 
 if __name__ == "__main__":
+	storage_path = calculate_storage_path(None)
+	a = validate_storage(None, storage_path)
+	print("validate_storage a:", a)
+
 	import_modules(local)
 	init_localization(local)
 	main()
