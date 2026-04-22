@@ -28,30 +28,32 @@ class Module:
     def init_data(self):
         self.local.buffer.network = [None] * 15 * 6
         self.local.buffer.diskio = [None] * 15 * 6
-        if self.local.db.statistics is None:
+        if self.local.db.get("statistics") is None:
             self.local.db.statistics = Dict()
             self.local.db.statistics.timestamp = get_timestamp()
-            self.local.db.statistics.net_recv_avg = [0, 0, 0]
-            self.local.db.statistics.net_sent_avg = [0, 0, 0]
             self.local.db.statistics.net_load_avg = [0, 0, 0]
-            self.local.db.statistics.pps_avg = [0, 0, 0]
-            self.local.db.statistics.bytes_recv = 0
-            self.local.db.statistics.bytes_sent = 0
             self.local.db.statistics.disks_load_avg = {}
             self.local.db.statistics.disks_load_percent_avg = {}
-            self.local.db.statistics.iops_avg = {}
 
     # end define
 
     def get_statistics_data(self, name):
         life_time = 120  # seconds
-        if self.local.db.statistics == None:
-            raise Exception("get_statistics_data error: local.db.statistics is None")
+
+        if self.local.db.statistics is None:
+            return [0, 0, 0] if "avg" in name else {}
+
         if self.local.db.statistics.timestamp + life_time < get_timestamp():
-            raise Exception("get_statistics_data error: local.db.statistics is old")
-        # end if
+            return [0, 0, 0] if "avg" in name else {}
 
         data = self.local.db.statistics.get(name)
+
+        if data is None or data == []:
+            return [0, 0, 0] if "avg" in name else {}
+
+        if isinstance(data, list) and "avg" not in name:
+            return {}
+
         return data
 
     # end define

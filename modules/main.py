@@ -147,12 +147,24 @@ class Module:
             "disks_load_percent_avg"
         )
 
-        # Disks status
+        if not (
+            isinstance(disks_load_avg, dict)
+            and isinstance(disks_load_percent_avg, dict)
+        ):
+            color_print(f"Disks load: {bcolors.yellow_text('Waiting for data...')}")
+            return
+
+        if not disks_load_avg:  # Проверка на пустой словарь
+            color_print(f"Disks load: {bcolors.yellow_text('No disk data yet')}")
+            return
+
         disks_load_list = list()
         for name, data in disks_load_avg.items():
-            disk_load_text = bcolors.green_text(
-                data[2]
-            )  # data = 1 minute, 5 minute, 15 minute
+            # ПРОВЕРЯЕМ, ЕСТЬ ЛИ ИНДЕКС [2] В ДАННЫХ
+            if len(data) < 3 or name not in disks_load_percent_avg:
+                continue
+
+            disk_load_text = bcolors.green_text(data[2])
             disk_load_percent_text = get_color_int(
                 disks_load_percent_avg[name][2],
                 borderline_value,
@@ -165,6 +177,11 @@ class Module:
             )
             disks_load_buff = buff.format(disk_load_text, disk_load_percent_text)
             disks_load_list.append(disks_load_buff)
+
+        if not disks_load_list:
+            print("Disks: No data")
+            return
+
         disks_load_data = ", ".join(disks_load_list)
         text = self.local.translate("disks_load").format(disks_load_data)
         print(text)
@@ -172,14 +189,19 @@ class Module:
     # end define
 
     def print_service_status(self):
-        service_status = get_service_status(self.service_name)
-        service_uptime = get_service_uptime(self.service_name)
-        service_status_color = get_service_status_color(service_status)
-        service_uptime_color = bcolors.green_text(time2human(service_uptime))
-        text = self.local.translate("service_status_and_uptime").format(
-            service_status_color, service_uptime_color
-        )
-        color_print(text)
+        try:
+            service_status = get_service_status(self.service_name)
+            service_uptime = get_service_uptime(self.service_name)
+            service_status_color = get_service_status_color(service_status)
+            service_uptime_color = bcolors.green_text(time2human(service_uptime))
+            text = self.local.translate("service_status_and_uptime").format(
+                service_status_color, service_uptime_color
+            )
+            color_print(text)
+        except (FileNotFoundError, Exception):
+            color_print(
+                f"Service status: {bcolors.yellow_text('Not available in Docker')}"
+            )
 
     # end define
 
@@ -196,10 +218,14 @@ class Module:
     # end define
 
     def get_my_git_hash_and_branch(self):
-        git_path = self.get_my_git_path()
-        git_hash = get_git_hash(git_path, short=True)
-        git_branch = get_git_branch(git_path)
-        return git_hash, git_branch
+        try:
+            git_path = self.get_my_git_path()
+            git_hash = get_git_hash(git_path, short=True)
+            git_branch = get_git_branch(git_path)
+            return git_hash, git_branch
+        except Exception:
+            # Если мы в Docker и нет папки .git, возвращаем заглушки
+            return "unknown", "docker"
 
     # end define
 
