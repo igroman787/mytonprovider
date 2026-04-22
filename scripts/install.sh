@@ -79,11 +79,16 @@ user=${input_user}
 echo "Using user: ${user}"
 
 # Install parameters
-src_dir="/usr/src"
-bin_dir="/usr/bin"
-venvs_dir="/home/${user}/.local/venv"
-venv_path="${venvs_dir}/${repo}"
-src_path="${src_dir}/${repo}"
+src_path=$(pwd)
+src_dir=$(dirname "$src_path")
+# Для локальной разработки создаем venv прямо в папке проекта
+venv_path="${src_path}/.venv"
+# Бинарники будем класть в папку проекта (для локальной установки)
+bin_dir="${src_path}/bin"
+
+# Создаем папку для бинарников, если её нет
+mkdir -p "$bin_dir"
+
 
 
 preparation_for_cloning() {
@@ -92,11 +97,18 @@ preparation_for_cloning() {
 }
 
 clone_repository() {
-	echo "https://github.com/${author}/${repo}.git -> ${branch}"
-	rm -rf ${src_path}
-	git clone --branch ${branch} --recursive https://github.com/${author}/${repo}.git ${src_path}
+	# Проверяем, не находимся ли мы уже внутри репозитория
+	if [ -f "${src_path}/mytonprovider.py" ]; then
+		echo "Detected local repository in ${src_path}. Skipping clone."
+		git submodule update --init --recursive
+	else
+		echo "Cloning MyTonProvider repository to ${src_path}..."
+		git clone --branch ${branch} --recursive https://github.com/${author}/${repo}.git ${src_path}
+	fi
+	# Исправляем настройки безопасности git для этой папки
 	git config --global --add safe.directory ${src_path}
 }
+
 
 install_apt_dependencies() {
 	apt install -y $(cat ${src_path}/resources/pkglist.txt)
