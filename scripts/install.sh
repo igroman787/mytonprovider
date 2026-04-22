@@ -83,13 +83,13 @@ src_path=$(pwd)
 src_dir=$(dirname "$src_path")
 # Для локальной разработки создаем venv прямо в папке проекта
 venv_path="${src_path}/.venv"
+venvs_dir="${src_path}/.venvs" 
 # Бинарники будем класть в папку проекта (для локальной установки)
 bin_dir="${src_path}/bin"
 
 # Создаем папку для бинарников, если её нет
 mkdir -p "$bin_dir"
-
-
+mkdir -p "$venvs_dir"
 
 preparation_for_cloning() {
 	apt update
