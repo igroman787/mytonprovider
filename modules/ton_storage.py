@@ -156,16 +156,26 @@ class Module:
     # end define
 
     def check_port(self):
-        ton_storage = self.local.db.ton_storage
-        storage_config = self.get_storage_config()
-        storage_pubkey = self.get_storage_pubkey()
-        listen_ip, storage_port = storage_config.ListenAddr.split(":")
+        try:
+            ton_storage = self.local.db.ton_storage
+            if ton_storage is None:
+                return
 
-        own_ip = get_own_ip()
-        if storage_config.ExternalIP != own_ip:
-            raise Exception("storage_config.ExternalIP != own_ip")
-        result, status = check_adnl_connection(own_ip, storage_port, storage_pubkey)
-        set_check_data(module=self, check_name="port", data=result)
+            storage_config = self.get_storage_config()
+            if storage_config is None or not hasattr(storage_config, "Key"):
+                return
+
+            storage_pubkey = self.get_storage_pubkey()
+            listen_ip, storage_port = storage_config.ListenAddr.split(":")
+
+            own_ip = get_own_ip()
+            if storage_config.ExternalIP != own_ip:
+                return
+
+            result, status = check_adnl_connection(own_ip, storage_port, storage_pubkey)
+            set_check_data(module=self, check_name="port", data=result)
+        except Exception:
+            pass
 
     # end define
 

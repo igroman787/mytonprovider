@@ -125,15 +125,30 @@ class Module:
     # end define
 
     def check_port(self):
-        adnl_pubkey = self.get_adnl_pubkey()
-        provider_config = self.get_provider_config()
-        listen_ip, provider_port = provider_config.ListenAddr.split(":")
+        try:
+            if (
+                not hasattr(self.local.db, "ton_storage")
+                or self.local.db.ton_storage is None
+            ):
+                return
+            if (
+                not hasattr(self.local.db.ton_storage, "provider")
+                or self.local.db.ton_storage.provider is None
+            ):
+                return
 
-        own_ip = get_own_ip()
-        if provider_config.ExternalIP != own_ip:
-            raise Exception("provider_config.ExternalIP != own_ip")
-        result, status = check_adnl_connection(own_ip, provider_port, adnl_pubkey)
-        set_check_data(module=self, check_name="port", data=result)
+            adnl_pubkey = self.get_adnl_pubkey()
+            provider_config = self.get_provider_config()
+            listen_ip, provider_port = provider_config.ListenAddr.split(":")
+
+            own_ip = get_own_ip()
+            if provider_config.ExternalIP != own_ip:
+                return
+
+            result, status = check_adnl_connection(own_ip, provider_port, adnl_pubkey)
+            set_check_data(module=self, check_name="port", data=result)
+        except Exception:
+            pass
 
     # end define
 
