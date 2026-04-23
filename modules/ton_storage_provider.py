@@ -289,14 +289,30 @@ class Module:
     async def status(self, args):
         color_print("{cyan}===[ Local provider status ]==={endc}")
         self.print_module_name()
-        self.print_provider_pubkey()
-        await self.print_provider_wallet()
-        self.print_storage_cost()
-        self.print_profit()
-        self.print_provider_space()
-        self.print_port_status()
-        self.print_service_status()
-        self.print_git_hash()
+
+        # 1. ПРОВЕРКА: Инициализирован ли раздел провайдера в базе данных?
+        ton_storage = getattr(self.local.db, "ton_storage", None)
+        if ton_storage is None or getattr(ton_storage, "provider", None) is None:
+            color_print(f"Status: {bcolors.yellow_text('Not configured yet')}")
+            return
+
+        # 2. ПРОВЕРКА: Запущена ли системная служба?
+        if not get_service_status(self.service_name):
+            color_print(f"Status: {bcolors.yellow_text('Service is not running')}")
+            return
+
+        # Если проверки пройдены, выводим полную статистику
+        try:
+            self.print_provider_pubkey()
+            await self.print_provider_wallet()
+            self.print_storage_cost()
+            self.print_profit()
+            self.print_provider_space()
+            self.print_port_status()
+            self.print_service_status()
+            self.print_git_hash()
+        except Exception as e:
+            color_print(f"{{red}}Error displaying status: {str(e)}{{endc}}")
 
     # end define
 
@@ -414,6 +430,10 @@ class Module:
     # end define
 
     def get_provider_config(self):
+        ton_storage = getattr(self.local.db, "ton_storage", None)
+        if ton_storage is None or getattr(ton_storage, "provider", None) is None:
+            return None
+
         provider = self.local.db.ton_storage.provider
         return read_config_from_file(provider.config_path)
 
