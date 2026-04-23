@@ -577,7 +577,11 @@ class Module:
 
         # Создать службу
         main_module = get_module_by_name(self.local, "main")
-        start_cmd = f"{install_args.bin_dir}/{self.go_package.repo} --daemon --db {db_dir} --api {host}:{api_port} -network-config {main_module.global_config_path} --no-verify"
+        bin_path = f"{install_args.bin_dir}/{self.go_package.repo}"
+        if not os.path.exists(bin_path):
+            bin_path = f"/usr/bin/{self.go_package.repo}"
+
+        start_cmd = f"{bin_path} --db {db_dir} --config {storage_config_path}"
         add2systemd(
             name=self.service_name,
             user=install_args.user,
@@ -585,6 +589,21 @@ class Module:
             workdir=install_answers.storage_path,
             force=True,
         )
+        if not os.path.exists(storage_config_path):
+            os.makedirs(os.path.dirname(storage_config_path), exist_ok=True)
+            default_config = {
+                "ListenAddr": "0.0.0.0:10000",
+                "ExternalIP": "127.0.0.1",
+                "MinSpan": 3600,
+                "MaxSpan": 3600,
+                "MinRatePerMBDay": "0.0",
+                "MaxBagSizeBytes": 1024,
+                "Storages": [
+                    {"BaseURL": "http://127.0.0.1", "SpaceToProvideMegabytes": 1024}
+                ],
+                "CRON": {"Enabled": False},
+            }
+            write_config_to_file(storage_config_path, default_config)
 
         # Первый запуск - создание конфига
         self.local.start_service(self.service_name, sleep=10)
@@ -607,6 +626,8 @@ class Module:
         ton_storage = Dict()
         ton_storage.storage_path = install_answers.storage_path
         ton_storage.src_dir = install_args.src_dir
+        if not hasattr(mconfig, "ton_storage") or mconfig.ton_storage is None:
+            mconfig.ton_storage = Dict()
         ton_storage.config_path = storage_config_path
 
         api = Dict()

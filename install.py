@@ -222,6 +222,8 @@ def main():
     install_args = parse_input_args()
     questions = create_questions()
     install_answers = Dict(inquirer.prompt(questions))
+    if install_answers.get("storage_path"):
+        install_answers.storage_path = os.path.abspath(install_answers.storage_path)
     need_modules_names = install_answers.get("utils")
     need_modules_names += get_modules_names(local, mandatory=True)
     need_modules_names.sort()

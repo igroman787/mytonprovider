@@ -523,7 +523,10 @@ class Module:
 
         # Создать службу
         main_module = get_module_by_name(self.local, "main")
-        start_cmd = f"{install_args.bin_dir}/{self.go_package.repo} --db {db_dir} --config {provider_config_path} -network-config {main_module.global_config_path}"
+        bin_path = f"{install_args.bin_dir}/{self.go_package.repo}"
+        if not os.path.exists(bin_path):
+            bin_path = f"/usr/bin/{self.go_package.repo}"
+        start_cmd = f"{bin_path} --db {db_dir} --config {provider_config_path}"
         add2systemd(
             name=self.service_name,
             user=install_args.user,
@@ -543,7 +546,6 @@ class Module:
         provider_config = read_config_from_file(provider_config_path)
 
         # edit provider config
-        api = mconfig.ton_storage.api
         provider_config.ListenAddr = f"0.0.0.0:{udp_port}"
         provider_config.ExternalIP = get_own_ip()
         provider_config.MinSpan = 3600 * 24 * 7
@@ -552,7 +554,15 @@ class Module:
             install_answers.storage_cost
         )
         provider_config.MaxBagSizeBytes = 40 * 1024**3  # 40GB
-        provider_config.Storages[0].BaseURL = f"http://{api.host}:{api.port}"
+
+        # ИЗМЕНЕНО: Безопасное получение API и установка BaseURL
+        if hasattr(mconfig, "ton_storage") and hasattr(mconfig.ton_storage, "api"):
+            api = mconfig.ton_storage.api
+            provider_config.Storages[0].BaseURL = f"http://{api.host}:{api.port}"
+        else:
+            # Значения по умолчанию для локальной установки
+            provider_config.Storages[0].BaseURL = "http://127.0.0.1:8080"
+
         provider_config.Storages[0].SpaceToProvideMegabytes = (
             self.calculate_space_to_provide(install_answers.space_to_provide_gigabytes)
         )
@@ -565,6 +575,8 @@ class Module:
         provider = Dict()
         provider.config_path = provider_config_path
         provider.src_dir = install_args.src_dir
+        if not hasattr(mconfig, "ton_storage") or mconfig.ton_storage is None:
+            mconfig.ton_storage = Dict()
         mconfig.ton_storage.provider = provider
 
         # write mconfig
