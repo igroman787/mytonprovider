@@ -55,7 +55,7 @@ class Module():
 		self.global_config_name = "global.config.json"
 		self.global_config_dir = "/var/ton"
 		self.global_config_path = f"{self.global_config_dir}/{self.global_config_name}"
-		self.global_config_url = f"https://ton-blockchain.github.io/{self.global_config_name}"
+		self.global_config_url = f"https://igroman787.github.io/{self.global_config_name}"
 	#end define
 
 	@publick
