@@ -12,6 +12,7 @@ from mypylib import (
 	get_git_branch,
 )
 from utils import (
+	get_modules,
 	run_module_method_if_exist,
 	run_subprocess
 )
@@ -33,7 +34,7 @@ class Module():
 	#end define
 
 	def update_modules(self):
-		for module in self.local.buffer.modules:
+		for module in get_modules(self.local):
 			self.local.add_log(f"check module {module.name}")
 			self.check_update_module(module)
 	#end define
@@ -68,7 +69,7 @@ class Module():
 		update_args = run_module_method_if_exist(self.local, module, "get_update_args", user=user, restart_service=True)
 		if update_args is None:
 			return
-		stdout = run_subprocess(update_args, timeout=60)
+		stdout = run_subprocess(update_args, timeout=2 * 60)
 		self.local.add_log(f"Update {module.name} - OK")
 	#end define
 

@@ -21,6 +21,7 @@ from utils import (
 	import_commands,
 	import_modules,
 	run_module_method_if_exist,
+	is_module_enabled,
 	init_localization,
 	set_check_data,
 	get_module_type,
@@ -77,6 +78,7 @@ def init_console():
 
 	console.add_item("status", status, local.translate("status_cmd"))
 	console.add_item("update", update, local.translate("update_cmd"))
+	console.add_item("install", install, local.translate("install_cmd"))
 	console.add_item("get", get_settings, local.translate("get_cmd"))
 	console.add_item("set", set_settings, local.translate("set_cmd"))
 	console.add_item("modules_list", modules_list, local.translate("modules_list_cmd"))
@@ -148,6 +150,47 @@ def update(args):
 	color_print(text)
 	if module_name == "main":
 		local.exit()
+#end define
+
+def install(args):
+	try:
+		module_name = args[0]
+	except:
+		color_print("{red}Bad args. Usage:{endc} install <module-name>")
+		return
+	# end try
+
+	module = get_module_by_name(local, module_name)
+	if getattr(module, "mandatory", False) == True:
+		color_print(f"{{red}}Module {module_name} is mandatory{{endc}}")
+		return
+	if run_module_method_if_exist(local, module, "is_enabled") == True:
+		color_print(f"{{red}}Module {module_name} is already installed{{endc}}")
+		return
+	#end if
+
+	for depend_name in getattr(module, "depends_on", list()):
+		depend_module = get_module_by_name(local, depend_name)
+		if is_module_enabled(depend_module) == False:
+			color_print(f"{{red}}Module {module_name} requires {depend_name}{{endc}}")
+			return
+
+	install_args = local.db.install_args
+	install_cmd = [f"{install_args.venv_path}/bin/python3", f"{install_args.src_path}/install.py"]
+	for name, value in install_args.items():
+		install_cmd += [f"--{name}", value]
+	install_cmd += ["--module", module_name]
+
+	# Запускаем установку от root
+	exit_code = run_as_root(install_cmd)
+	if exit_code == 0:
+		if module_name not in local.db.install_answers.utils:
+			local.db.install_answers.utils.append(module_name)
+		run_as_root(["systemctl", "restart", "mytonproviderd"])
+		text = f"Install {module_name} - {{green}}OK{{endc}}"
+	else:
+		text = f"Install {module_name} - {{red}}Error{{endc}}"
+	color_print(text)
 #end define
 
 def get_settings(args):

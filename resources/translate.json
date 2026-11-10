@@ -34,6 +34,11 @@
 		"en": "Update the specified module",
 		"zh_TW": "更新指定模組"
 	},
+	"install_cmd": {
+		"ru": "Установить указанный модуль",
+		"en": "Install the specified module",
+		"zh_TW": "安裝指定模組"
+	},
 	"bags_list_cmd": {
 		"ru": "Показать список хранимых контейнеров",
 		"en": "Show list of stored containers",
@@ -198,6 +203,16 @@
 		"ru": "Установить уровень логирования ton-storage",
 		"en": "Set ton-storage log level",
 		"zh_TW": "設定 ton-storage 日誌等級"
+	},
+	"dht_server_stored_keys": {
+		"ru": "Кол-во хранимых ключей",
+		"en": "Stored keys count",
+		"zh_TW": "儲存的鍵數量"
+	},
+	"dht_server_active_peers": {
+		"ru": "Кол-во активных пиров",
+		"en": "Active peers count",
+		"zh_TW": "活躍節點數量"
 	},
 	"123": {
 		"ru": "aaa",

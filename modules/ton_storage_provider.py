@@ -57,6 +57,7 @@ class Module():
 		self.service_name = self.name
 		self.local = local
 		self.mandatory = False
+		self.depends_on = ["main", "ton-storage"]
 		self.local.add_log(f"{self.name} module init done", "debug")
 
 		self.go_package = Dict()
@@ -413,6 +414,7 @@ class Module():
 		if self.local.db.ton_storage != None:
 			provider_config = self.get_provider_config()
 			provider_config.MaxSpan = self.calculate_MaxSpan(self.get_storage_cost())
+			provider_config.MaxBagSizeBytes = self.calculate_MaxBagSizeBytes(provider_config.Storages[0].SpaceToProvideMegabytes)
 			self.set_provider_config(provider_config)
 		#end if
 
@@ -448,7 +450,7 @@ class Module():
 
 		# Склонировать исходники и скомпилировать бинарники
 		upgrade_args = self.get_update_args(install_args.src_path)
-		run_subprocess(upgrade_args, timeout=60)
+		run_subprocess(upgrade_args, timeout=2 * 60)
 
 		# Подготовить папку
 		os.makedirs(provider_path, exist_ok=True)
@@ -476,14 +478,16 @@ class Module():
 
 		# edit provider config
 		api = mconfig.ton_storage.api
+		space_to_provide = self.calculate_space_to_provide(install_answers.space_to_provide_gigabytes)
+
 		provider_config.ListenAddr = f"0.0.0.0:{udp_port}"
 		provider_config.ExternalIP = get_own_ip()
 		provider_config.MinSpan = 3600 *24 *7
 		provider_config.MaxSpan = self.calculate_MaxSpan(install_answers.storage_cost)
 		provider_config.MinRatePerMBDay = self.calculate_MinRatePerMBDay(install_answers.storage_cost)
-		provider_config.MaxBagSizeBytes = 40 * 1024**3 # 40GB
+		provider_config.MaxBagSizeBytes = self.calculate_MaxBagSizeBytes(space_to_provide)
 		provider_config.Storages[0].BaseURL = f"http://{api.host}:{api.port}"
-		provider_config.Storages[0].SpaceToProvideMegabytes = self.calculate_space_to_provide(install_answers.space_to_provide_gigabytes)
+		provider_config.Storages[0].SpaceToProvideMegabytes = space_to_provide
 		provider_config.CRON.Enabled = True
 
 		# write provider config
@@ -521,6 +525,17 @@ class Module():
 		if max_span > 4294967290:
 			max_span = 4294967290
 		return max_span
+	#end define
+
+	def calculate_MaxBagSizeBytes(self, space_to_provide_megabytes):
+		# Каждые 100 GB выделенного места +10 GB MaxBagSize
+		bag_step = 10 * 1024**3
+		space_step = 100 * 1024**3
+		space_bytes = int(space_to_provide_megabytes) * 1024**2
+		result = space_bytes // space_step * bag_step
+		if result < bag_step:
+			return bag_step
+		return result
 	#end define
 
 	def calculate_MinRatePerMBDay(self, storage_cost):

@@ -4,4 +4,4 @@ inquirer==3.4.0
 pytoniq==0.1.43
 requests==2.32.3
 rich==15.0.0
-speedtest-cli
+speedkit==0.2.2

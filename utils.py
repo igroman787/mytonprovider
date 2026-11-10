@@ -238,6 +238,32 @@ def import_modules(local):
 			continue
 		module = file_module.Module(local)
 		local.buffer.modules.append(module)
+	local.buffer.modules = sort_modules(local.buffer.modules)
+#end define
+
+def sort_modules(modules):
+	result = list()
+	need_modules = list(modules)
+	while need_modules:
+		for module in need_modules:
+			if has_module_depends(module, need_modules) == True:
+				continue
+			result.append(module)
+			need_modules.remove(module)
+			break
+		else:
+			result += need_modules
+			break
+	return result
+#end define
+
+def has_module_depends(module, need_modules):
+	depends_on = getattr(module, "depends_on", list())
+	for need_module in need_modules:
+		need_module_name = getattr(need_module, "name", None)
+		if need_module_name in depends_on:
+			return True
+	return False
 #end define
 
 def get_modules(local, check_is_enabled=True):

@@ -17,7 +17,7 @@ from mypylib import (
 	get_service_uptime
 )
 from decorators import publick
-from utils import get_module_by_name, get_disk_space
+from utils import get_module_by_name, get_modules, get_disk_space
 from server_info import (
 	get_cpu_name,
 	get_product_name,
@@ -36,6 +36,7 @@ class Module():
 		self.name = "telemetry"
 		self.local = local
 		self.mandatory = False
+		self.depends_on = ["main"]
 		self.daemon_interval = 60
 		self.telemetry_url = "https://mytonprovider.org/api/v1/providers"
 		self.benchmark_url = "https://mytonprovider.org/api/v1/benchmarks"
@@ -167,7 +168,7 @@ class Module():
 
 	def get_all_git_hashes(self):
 		result = Dict()
-		for module in self.local.buffer.modules:
+		for module in get_modules(self.local):
 			method = getattr(module, "get_my_git_hash_and_branch", None)
 			if method == None:
 				continue
